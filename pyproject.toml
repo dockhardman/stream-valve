@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "stream-valve"
+version = "0.1.0"
+description = ""
+authors = ["Allen Chou <f1470891079@gmail.com>"]
+license = "Apache-2.0 license"
+readme = "README.md"
+packages = [{include = "stream_valve"}]
+
+[tool.poetry.dependencies]
+python = ">=3.7.0,<4.0.0"
+rich = "*"
+pytz = "*"
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+flake8 = "*"
+flake9 = "*"
+pytest = "*"
+pytest-asyncio = "*"
+yapf = "*"
+isort = "*"
+
+[tool.poetry.group.doc.dependencies]
+sphinx = "*"
+
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
