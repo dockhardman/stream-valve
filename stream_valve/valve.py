@@ -1,5 +1,4 @@
 from abc import ABC
-from decimal import Decimal
 from pathlib import Path
 from typing import Optional, Text, Union
 
@@ -32,8 +31,8 @@ class Valve(ABC):
             self.rate_limit_backoff_delay = rate_limit_backoff_delay
 
         self.is_open: bool = False
-        self.throughput_accumulator: "Decimal" = Decimal(0)
-        self.throughput_time_accumulator: "Decimal" = Decimal(0)
+        self.throughput_accumulator: float = 0.0
+        self.throughput_time_accumulator: float = 0.0
 
     def open(self):
         self.is_open = True
@@ -43,8 +42,8 @@ class Valve(ABC):
         self.is_open = False
 
     def meter_zero(self):
-        self.throughput_accumulator = Decimal(0)
-        self.throughput_time_accumulator = Decimal(0)
+        self.throughput_accumulator = 0.0
+        self.throughput_time_accumulator = 0.0
 
     def __enter__(self):
         self.open()

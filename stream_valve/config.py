@@ -1,7 +1,6 @@
 import copy
 import logging
 import os
-from decimal import getcontext
 from typing import Text
 
 
@@ -15,9 +14,7 @@ class Settings:
 
         # Environments
         self.logger_name: Text = str(envs.get("logger_name", "stream-valve"))
-        self.decimal_prec: int = int(envs.get("decimal_prec", "decimal_prec"))
 
 
 settings = Settings()
 logger = logging.getLogger(settings.logger_name)
-getcontext().prec = settings.decimal_prec
