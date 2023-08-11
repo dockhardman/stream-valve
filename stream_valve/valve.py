@@ -1,23 +1,50 @@
 from abc import ABC
+from decimal import Decimal
 from pathlib import Path
-from typing import Text, Union
+from typing import Optional, Text, Union
+
+from stream_valve.config import logger
 
 
 class Valve(ABC):
-    def __init__(self, *args, chunk_size: int = 1024, **kwargs):
-        self.is_open: bool = False
-
+    def __init__(
+        self,
+        *args,
+        chunk_size: int = 1024,
+        throughput: Optional[float] = None,
+        rate_limit_backoff_delay: Optional[float] = None,
+        **kwargs
+    ):
         chunk_size = int(chunk_size)
         if chunk_size <= 0:
             raise ValueError("chunk_size must be positive")
         else:
             self.chunk_size = chunk_size
 
+        if throughput is not None and throughput <= 0:
+            raise ValueError("throughput must be positive")
+        else:
+            self.throughput = throughput
+
+        if rate_limit_backoff_delay is not None and rate_limit_backoff_delay <= 0:
+            raise ValueError("rate_limit_backoff_delay must be positive")
+        else:
+            self.rate_limit_backoff_delay = rate_limit_backoff_delay
+
+        self.is_open: bool = False
+        self.throughput_accumulator: "Decimal" = Decimal(0)
+        self.throughput_time_accumulator: "Decimal" = Decimal(0)
+
     def open(self):
         self.is_open = True
+        self.meter_zero()
 
     def close(self):
         self.is_open = False
+
+    def meter_zero(self):
+        self.throughput_accumulator = Decimal(0)
+        self.throughput_time_accumulator = Decimal(0)
 
     def __enter__(self):
         self.open()
@@ -32,9 +59,21 @@ class Valve(ABC):
 
 class FileValve(Valve):
     def __init__(
-        self, filepath: Union[Text, Path], *args, chunk_size: int = 1024, **kwargs
+        self,
+        filepath: Union[Text, Path],
+        *args,
+        chunk_size: int = 1024,
+        throughput: Optional[float] = None,
+        rate_limit_backoff_delay: Optional[float] = None,
+        **kwargs
     ):
-        super().__init__(*args, chunk_size=chunk_size, **kwargs)
+        super().__init__(
+            *args,
+            chunk_size=chunk_size,
+            throughput=throughput,
+            rate_limit_backoff_delay=rate_limit_backoff_delay,
+            **kwargs
+        )
 
         self.filepath = filepath
         self.file_io = None
