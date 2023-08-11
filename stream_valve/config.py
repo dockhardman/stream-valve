@@ -7,7 +7,7 @@ from typing import Text
 class Settings:
     def __init__(self, *args, **kwargs):
         envs = copy.deepcopy(dict(os.environ))
-        for k, v in envs.items():
+        for k, v in list(envs.items()):
             k_casefold = k.casefold()
             envs[k_casefold] = v
             envs[k_casefold.replace("-", "_")] = v

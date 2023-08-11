@@ -1,6 +1,7 @@
+import time
 from abc import ABC
 from pathlib import Path
-from typing import Optional, Text, Union
+from typing import Generator, Optional, Text, Union
 
 from stream_valve.config import logger
 
@@ -33,6 +34,7 @@ class Valve(ABC):
         self.is_open: bool = False
         self.throughput_accumulator: float = 0.0
         self.throughput_time_accumulator: float = 0.0
+        self._mono_timer: float = time.monotonic()
 
     def open(self):
         self.is_open = True
@@ -44,6 +46,7 @@ class Valve(ABC):
     def meter_zero(self):
         self.throughput_accumulator = 0.0
         self.throughput_time_accumulator = 0.0
+        self._mono_timer: float = time.monotonic()
 
     def __enter__(self):
         self.open()
@@ -52,7 +55,14 @@ class Valve(ABC):
     def __exit__(self, *args):
         self.close()
 
-    def __iter__(self):
+    def __iter__(self) -> "Generator[bytes, None, None]":
+        if not self.is_open:
+            raise ValueError("Valve is closed")
+
+        for chunk in self.throttle():
+            yield chunk
+
+    def throttle(self) -> "Generator[bytes, None, None]":
         raise NotImplementedError
 
 
@@ -85,10 +95,7 @@ class FileValve(Valve):
         self.file_io.close()
         super().close()
 
-    def __iter__(self):
-        if not self.is_open:
-            raise ValueError("Valve is closed")
-
+    def throttle(self) -> "Generator[bytes, None, None]":
         while True:
             chunk = self.file_io.read(self.chunk_size)
             if not chunk:
