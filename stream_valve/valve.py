@@ -12,7 +12,7 @@ class Valve(ABC):
         *args,
         chunk_size: int = 1024,
         throughput: Optional[float] = None,
-        rate_limit_backoff_delay: Optional[float] = None,
+        rate_limit_backoff_delay: float = 0.01,
         **kwargs
     ):
         chunk_size = int(chunk_size)
@@ -64,7 +64,7 @@ class FileValve(Valve):
         *args,
         chunk_size: int = 1024,
         throughput: Optional[float] = None,
-        rate_limit_backoff_delay: Optional[float] = None,
+        rate_limit_backoff_delay: float = 0.01,
         **kwargs
     ):
         super().__init__(
