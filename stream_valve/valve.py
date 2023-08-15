@@ -1,7 +1,10 @@
+import logging
 import time
 from abc import ABC
 from pathlib import Path
 from typing import Generator, Optional, Text, Union
+
+from rich import print
 
 from stream_valve.config import logger
 
@@ -13,7 +16,9 @@ class Valve(ABC):
         chunk_size: int = 1024,
         throughput: Optional[float] = None,
         rate_limit_backoff_delay: float = 0.01,
-        **kwargs
+        debug: bool = False,
+        logger: Optional["logging.Logger"] = None,
+        **kwargs,
     ):
         chunk_size = int(chunk_size)
         if chunk_size <= 0:
@@ -30,6 +35,9 @@ class Valve(ABC):
             raise ValueError("rate_limit_backoff_delay must be positive")
         else:
             self.rate_limit_backoff_delay = rate_limit_backoff_delay
+
+        self.debug = debug
+        self.logger = logger
 
         self.is_open: bool = False
         self.throughput_accumulator: float = 0.0
@@ -60,10 +68,23 @@ class Valve(ABC):
             raise ValueError("Valve is closed")
 
         for chunk in self.throttle():
+            self.throughput_accumulator += len(chunk)
+            self.throughput_time_accumulator += time.monotonic() - self._mono_timer
+            rate = self.throughput_accumulator / self.throughput_time_accumulator
+
+            if self.debug is True:
+                self.log(f"Rate: {rate:.2f} bytes/sec", level=logging.INFO)
+
             yield chunk
 
     def throttle(self) -> "Generator[bytes, None, None]":
         raise NotImplementedError
+
+    def log(self, msg: Text, level: int = logging.DEBUG):
+        if self.logger is not None:
+            self.logger.log(level, msg)
+        else:
+            print(msg)
 
 
 class FileValve(Valve):
@@ -74,14 +95,18 @@ class FileValve(Valve):
         chunk_size: int = 1024,
         throughput: Optional[float] = None,
         rate_limit_backoff_delay: float = 0.01,
-        **kwargs
+        debug: bool = False,
+        logger: Optional["logging.Logger"] = None,
+        **kwargs,
     ):
         super().__init__(
             *args,
             chunk_size=chunk_size,
             throughput=throughput,
             rate_limit_backoff_delay=rate_limit_backoff_delay,
-            **kwargs
+            debug=debug,
+            logger=logger,
+            **kwargs,
         )
 
         self.filepath = filepath

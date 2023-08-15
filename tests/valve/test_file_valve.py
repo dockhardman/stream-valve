@@ -8,7 +8,7 @@ def test_file_valve(dummy_file: Text):
     filesize = os.path.getsize(dummy_file)
 
     size_accumulator = 0
-    valve = FileValve(filepath=dummy_file)
+    valve = FileValve(filepath=dummy_file, debug=False)
     with valve:
         for chunk in valve:
             size_accumulator += len(chunk)
