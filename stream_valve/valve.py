@@ -2,43 +2,60 @@ import logging
 import time
 from abc import ABC
 from pathlib import Path
-from typing import Generator, Optional, Text, Union
+from typing import Generator, Optional, Text, TypedDict, Union
 
 from rich import print
 
 from stream_valve.config import logger
 
 
+class ValveInit(TypedDict):
+    chunk_size: int
+    throughput: Optional[float]
+    rate_limit_backoff_delay: float
+    debug: bool
+    logger: Optional["logging.Logger"]
+
+
 class Valve(ABC):
-    def __init__(
-        self,
-        *args,
-        chunk_size: int = 1024,
-        throughput: Optional[float] = None,
-        rate_limit_backoff_delay: float = 0.01,
-        debug: bool = False,
-        logger: Optional["logging.Logger"] = None,
-        **kwargs,
-    ):
+    default_chunk_size: int = 1024
+    default_throughput: Optional[float] = None
+    default_rate_limit_backoff_delay: float = 0.01
+    default_debug: bool = False
+    default_logger: Optional["logging.Logger"] = None
+
+    def __init__(self, *args, **kwargs: ValveInit):
+        # chunk_size
+        chunk_size = kwargs.get("chunk_size", self.default_chunk_size)
         chunk_size = int(chunk_size)
         if chunk_size <= 0:
             raise ValueError("chunk_size must be positive")
         else:
             self.chunk_size = chunk_size
 
+        # throughput
+        throughput = kwargs.get("throughput", self.default_throughput)
         if throughput is not None and throughput <= 0:
             raise ValueError("throughput must be positive")
         else:
             self.throughput = throughput
 
+        # rate_limit_backoff_delay
+        rate_limit_backoff_delay = kwargs.get(
+            "rate_limit_backoff_delay", self.default_rate_limit_backoff_delay
+        )
         if rate_limit_backoff_delay is not None and rate_limit_backoff_delay <= 0:
             raise ValueError("rate_limit_backoff_delay must be positive")
         else:
             self.rate_limit_backoff_delay = rate_limit_backoff_delay
 
-        self.debug = debug
-        self.logger = logger
+        # debug
+        self.debug = kwargs.get("debug", self.default_debug)
 
+        # logger
+        self.logger = kwargs.get("logger", self.default_logger)
+
+        # Private attributes
         self.is_open: bool = False
         self.throughput_iter_count_accumulator: int = 0
         self.throughput_len_accumulator: int = 0
@@ -91,26 +108,8 @@ class Valve(ABC):
 
 
 class FileValve(Valve):
-    def __init__(
-        self,
-        filepath: Union[Text, Path],
-        *args,
-        chunk_size: int = 1024,
-        throughput: Optional[float] = None,
-        rate_limit_backoff_delay: float = 0.01,
-        debug: bool = False,
-        logger: Optional["logging.Logger"] = None,
-        **kwargs,
-    ):
-        super().__init__(
-            *args,
-            chunk_size=chunk_size,
-            throughput=throughput,
-            rate_limit_backoff_delay=rate_limit_backoff_delay,
-            debug=debug,
-            logger=logger,
-            **kwargs,
-        )
+    def __init__(self, *args, filepath: Union[Text, Path], **kwargs: ValveInit):
+        super().__init__(*args, **kwargs)
 
         self.filepath = filepath
         self.file_io = None
