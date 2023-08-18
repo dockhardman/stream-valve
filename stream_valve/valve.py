@@ -86,7 +86,7 @@ class Valve(ABC):
         if not self.is_open:
             raise ValueError("Valve is closed")
 
-        for chunk in self.throttle():
+        for chunk in self.flow_out():
             self.throughput_iter_count_accumulator += 1
             self.throughput_len_accumulator += len(chunk)
             self.throughput_time_accumulator += time.monotonic() - self._mono_timer
@@ -97,7 +97,7 @@ class Valve(ABC):
 
             yield chunk
 
-    def throttle(self) -> "Generator[bytes, None, None]":
+    def flow_out(self) -> "Generator[bytes, None, None]":
         raise NotImplementedError
 
     def log(self, msg: Text, level: int = logging.DEBUG):
@@ -122,7 +122,7 @@ class FileValve(Valve):
         self.file_io.close()
         super().close()
 
-    def throttle(self) -> "Generator[bytes, None, None]":
+    def flow_out(self) -> "Generator[bytes, None, None]":
         while True:
             chunk = self.file_io.read(self.chunk_size)
             if not chunk:
