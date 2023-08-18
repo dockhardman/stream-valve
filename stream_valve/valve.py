@@ -58,7 +58,7 @@ class Valve(ABC):
         # Private attributes
         self.is_open: bool = False
         self.throughput_iter_count_accumulator: int = 0
-        self.throughput_len_accumulator: int = 0
+        self.throughput_size_accumulator: int = 0
         self.throughput_time_accumulator: float = 0.0
         self._mono_timer: float = time.monotonic()
 
@@ -71,7 +71,7 @@ class Valve(ABC):
 
     def meter_zero(self):
         self.throughput_iter_count_accumulator = 0
-        self.throughput_len_accumulator = 0
+        self.throughput_size_accumulator = 0
         self.throughput_time_accumulator = 0.0
         self._mono_timer: float = time.monotonic()
 
@@ -88,9 +88,9 @@ class Valve(ABC):
 
         for chunk in self.flow_out():
             self.throughput_iter_count_accumulator += 1
-            self.throughput_len_accumulator += len(chunk)
+            self.throughput_size_accumulator += len(chunk)
             self.throughput_time_accumulator += time.monotonic() - self._mono_timer
-            rate = self.throughput_len_accumulator / self.throughput_time_accumulator
+            rate = self.throughput_size_accumulator / self.throughput_time_accumulator
 
             if self.debug is True:
                 self.log(f"Rate: {rate:.2f} bytes/sec", level=logging.INFO)
