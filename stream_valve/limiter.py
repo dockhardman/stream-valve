@@ -5,6 +5,7 @@ from typing import Text
 class Limiter(ABC):
     def __init__(self, *args, **kwargs):
         self._is_rate_limited: bool = False
+
     def name(self) -> Text:
         raise NotImplementedError
 
