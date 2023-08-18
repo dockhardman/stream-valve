@@ -17,6 +17,13 @@ class ValveInit(TypedDict):
     logger: Optional["logging.Logger"]
 
 
+class ThroughputMetadata(TypedDict):
+    throughput_iter_count_accumulator: int
+    throughput_size_accumulator: int
+    throughput_time_accumulator: float
+    valve_mono_timer_start: float
+
+
 class Valve(ABC):
     default_chunk_size: int = 1024
     default_throughput: Optional[float] = None
@@ -55,12 +62,16 @@ class Valve(ABC):
         # logger
         self.logger = kwargs.get("logger", self.default_logger)
 
-        # Private attributes
+        # throughput metadata
+        self.throughput_metadata: ThroughputMetadata = {
+            "throughput_iter_count_accumulator": 0,
+            "throughput_size_accumulator": 0,
+            "throughput_time_accumulator": 0.0,
+            "valve_mono_timer_start": time.monotonic(),
+        }
+
+        # object attributes
         self.is_open: bool = False
-        self.throughput_iter_count_accumulator: int = 0
-        self.throughput_size_accumulator: int = 0
-        self.throughput_time_accumulator: float = 0.0
-        self._mono_timer: float = time.monotonic()
 
     def open(self):
         self.is_open = True
@@ -70,10 +81,10 @@ class Valve(ABC):
         self.is_open = False
 
     def meter_zero(self):
-        self.throughput_iter_count_accumulator = 0
-        self.throughput_size_accumulator = 0
-        self.throughput_time_accumulator = 0.0
-        self._mono_timer: float = time.monotonic()
+        self.throughput_metadata["throughput_iter_count_accumulator"] = 0
+        self.throughput_metadata["throughput_size_accumulator"] = 0
+        self.throughput_metadata["throughput_time_accumulator"] = 0.0
+        self.throughput_metadata["valve_mono_timer_start"] = time.monotonic()
 
     def __enter__(self):
         self.open()
@@ -87,10 +98,15 @@ class Valve(ABC):
             raise ValueError("Valve is closed")
 
         for chunk in self.flow_out():
-            self.throughput_iter_count_accumulator += 1
-            self.throughput_size_accumulator += len(chunk)
-            self.throughput_time_accumulator += time.monotonic() - self._mono_timer
-            rate = self.throughput_size_accumulator / self.throughput_time_accumulator
+            self.throughput_metadata["throughput_iter_count_accumulator"] += 1
+            self.throughput_metadata["throughput_size_accumulator"] += len(chunk)
+            self.throughput_metadata["throughput_time_accumulator"] += (
+                time.monotonic() - self.throughput_metadata["valve_mono_timer_start"]
+            )
+            rate = (
+                self.throughput_metadata["throughput_size_accumulator"]
+                / self.throughput_metadata["throughput_time_accumulator"]
+            )
 
             if self.debug is True:
                 self.log(f"Rate: {rate:.2f} bytes/sec", level=logging.INFO)
